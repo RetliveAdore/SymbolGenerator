@@ -206,10 +206,57 @@ static int parse_coff(const char *filename, Symbol **outSymbols, int *outCount)
     return 1;
 }
 
+// 规范化路径：确保不以路径分隔符结尾
+static void normalize_path(char *out, size_t outSize, const char *path)
+{
+    size_t len = strlen(path);
+    if (len == 0)
+    {
+        out[0] = '\0';
+        return;
+    }
+    
+#ifdef _WIN32
+    char sep = '\\';
+#else
+    char sep = '/';
+#endif
+    
+    // 复制路径
+    strncpy(out, path, outSize - 1);
+    out[outSize - 1] = '\0';
+    
+    // 移除尾随分隔符
+    size_t outLen = strlen(out);
+    while (outLen > 0 && out[outLen - 1] == sep)
+    {
+        out[outLen - 1] = '\0';
+        outLen--;
+    }
+}
+
+// 将字符串转换为大写
+static void to_uppercase(char *str)
+{
+    for (char *p = str; *p; p++)
+    {
+        *p = toupper((unsigned char)*p);
+    }
+}
+
 static void generate_header(const char *outDir, const char *baseName, const char *macro, Symbol *symbols, int count)
 {
     char headerPath[1024];
-    snprintf(headerPath, sizeof(headerPath), "%s/%s.h", outDir, baseName);
+    char normalizedDir[1024];
+    
+    // 规范化输出目录
+    normalize_path(normalizedDir, sizeof(normalizedDir), outDir);
+    
+#ifdef _WIN32
+    snprintf(headerPath, sizeof(headerPath), "%s\\%s.h", normalizedDir, baseName);
+#else
+    snprintf(headerPath, sizeof(headerPath), "%s/%s.h", normalizedDir, baseName);
+#endif
 
     FILE *h = fopen(headerPath, "w");
     if (!h)
@@ -227,20 +274,23 @@ static void generate_header(const char *outDir, const char *baseName, const char
         if (*p == '.')
             *p = '_';
     }
+    
+    // 转换为大写
+    to_uppercase(cleanName);
 
     fprintf(h, "// Auto-generated header from %s.o\n", baseName);
-    fprintf(h, "#ifndef %s_symbols_h\n", cleanName);
-    fprintf(h, "#define %s_symbols_h\n\n", cleanName);
+    fprintf(h, "#ifndef _INCLUDE_%s_H_\n", cleanName);
+    fprintf(h, "#define _INCLUDE_%s_H_\n\n", cleanName);
 
     for (int i = 0; i < count; i++)
     {
         const char *name = symbols[i].name;
         // 根据后缀确定类型
-        if (strstr(name, "_SIZE"))
+        if (strstr(name, "_size"))
         {
             fprintf(h, "extern const unsigned int %s;\n", name);
         }
-        else if (strstr(name, "_START") || strstr(name, "_END"))
+        else if (strstr(name, "_start") || strstr(name, "_end"))
         {
             fprintf(h, "extern const unsigned char %s[];\n", name);
         }
@@ -263,12 +313,14 @@ static void generate_header(const char *outDir, const char *baseName, const char
                 suffix++; // 跳过下划线
                 char macroName[256];
                 snprintf(macroName, sizeof(macroName), "%s_%s", macro, suffix);
+                // 将宏名称转换为大写
+                to_uppercase(macroName);
                 fprintf(h, "#define %s %s\n", macroName, name);
             }
         }
     }
 
-    fprintf(h, "\n#endif // %s_SYMBOLS_H\n", cleanName);
+    fprintf(h, "\n#endif // _INCLUDE_%s_H_\n", cleanName);
     fclose(h);
     printf("Generated header: %s\n", headerPath);
 }
@@ -276,7 +328,34 @@ static void generate_header(const char *outDir, const char *baseName, const char
 static void generate_combined_header(const char *outDir, const char *headerName, ObjectFile *files, int fileCount)
 {
     char headerPath[1024];
-    snprintf(headerPath, sizeof(headerPath), "%s/%s.h", outDir, headerName);
+    char normalizedDir[1024];
+    
+    // 规范化输出目录
+    normalize_path(normalizedDir, sizeof(normalizedDir), outDir);
+    
+    // 检查headerName是否已经以.h结尾
+    size_t nameLen = strlen(headerName);
+    int hasExtension = (nameLen >= 2 && strcmp(headerName + nameLen - 2, ".h") == 0);
+    
+#ifdef _WIN32
+    if (hasExtension)
+    {
+        snprintf(headerPath, sizeof(headerPath), "%s\\%s", normalizedDir, headerName);
+    }
+    else
+    {
+        snprintf(headerPath, sizeof(headerPath), "%s\\%s.h", normalizedDir, headerName);
+    }
+#else
+    if (hasExtension)
+    {
+        snprintf(headerPath, sizeof(headerPath), "%s/%s", normalizedDir, headerName);
+    }
+    else
+    {
+        snprintf(headerPath, sizeof(headerPath), "%s/%s.h", normalizedDir, headerName);
+    }
+#endif
 
     FILE *h = fopen(headerPath, "w");
     if (!h)
@@ -294,10 +373,13 @@ static void generate_combined_header(const char *outDir, const char *headerName,
         if (*p == '.')
             *p = '_';
     }
+    
+    // 转换为大写
+    to_uppercase(cleanName);
 
     fprintf(h, "// Auto-generated combined header from %d object files\n", fileCount);
-    fprintf(h, "#ifndef %s_SYMBOLS_H\n", cleanName);
-    fprintf(h, "#define %s_SYMBOLS_H\n\n", cleanName);
+    fprintf(h, "#ifndef _INCLUDE_%s_H_\n", cleanName);
+    fprintf(h, "#define _INCLUDE_%s_H_\n\n", cleanName);
 
     // 收集所有符号
     int totalSymbols = 0;
@@ -359,6 +441,8 @@ static void generate_combined_header(const char *outDir, const char *headerName,
                         suffix++;
                         char macroName[256];
                         snprintf(macroName, sizeof(macroName), "%s_%s", files[f].macro, suffix);
+                        // 将宏名称转换为大写
+                        to_uppercase(macroName);
                         fprintf(h, "#define %s %s\n", macroName, name);
                     }
                 }
@@ -366,7 +450,7 @@ static void generate_combined_header(const char *outDir, const char *headerName,
         }
     }
 
-    fprintf(h, "\n#endif // %s_SYMBOLS_H\n", cleanName);
+    fprintf(h, "\n#endif // _INCLUDE_%s_H_\n", cleanName);
     fclose(h);
     printf("Generated combined header: %s\n", headerPath);
 }
