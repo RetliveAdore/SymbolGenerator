@@ -1,0 +1,1 @@
+@gcc -fexec-charset=GBK main.c -o SymbolGenerator.exe
