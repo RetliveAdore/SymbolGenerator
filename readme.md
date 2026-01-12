@@ -34,45 +34,51 @@ SymbolGenerator -d <输出目录> [-n <合并头文件名>] <文件1.o> [宏1] <
 对于 `default.frag.o` 文件并指定宏 `MY_SHADER`，将生成 `default.frag.h` 文件，内容如下：
 ~~~c
 // Auto-generated header from default.frag.o
-#ifndef default_frag_SYMBOLS_H
-#define default_frag_SYMBOLS_H
+#ifndef _INCLUDE_DEFAULT_FRAG_H_
+#define _INCLUDE_DEFAULT_FRAG_H_
 
 extern const unsigned int _binary_out_objs_shaders_default_frag_spv_size;
 extern const unsigned char _binary_out_objs_shaders_default_frag_spv_end[];
 extern const unsigned char _binary_out_objs_shaders_default_frag_spv_start[];
 
 // Macros for convenience
-#define MY_SHADER_size _binary_out_objs_shaders_default_frag_spv_size
-#define MY_SHADER_end _binary_out_objs_shaders_default_frag_spv_end
-#define MY_SHADER_start _binary_out_objs_shaders_default_frag_spv_start
+#define DEFAULT_FRAG_SIZE _binary_out_objs_shaders_default_frag_spv_size
+#define DEFAULT_FRAG_END _binary_out_objs_shaders_default_frag_spv_end
+#define DEFAULT_FRAG_START _binary_out_objs_shaders_default_frag_spv_start
 
-#endif // default_frag_SYMBOLS_H
+#endif // _INCLUDE_DEFAULT_FRAG_H_
+
 ~~~
 
 ### 合并头文件模式
 使用 `-n shader_symbols` 参数时，将生成 `shader_symbols.h` 文件，内容如下：
 ~~~c
 // Auto-generated combined header from 2 object files
-#ifndef shader_symbols_SYMBOLS_H
-#define shader_symbols_SYMBOLS_H
+#ifndef _INCLUDE_SHADER_SYMBOL_TEST_H_
+#define _INCLUDE_SHADER_SYMBOL_TEST_H_
 
-// From test/shaders/default.frag.o
+// From .\test\shaders\default.frag.o
 extern const unsigned int _binary_out_objs_shaders_default_frag_spv_size;
 extern const unsigned char _binary_out_objs_shaders_default_frag_spv_end[];
 extern const unsigned char _binary_out_objs_shaders_default_frag_spv_start[];
 
-// From test/shaders/default.vert.o
+// From .\test\shaders\default.vert.o
 extern const unsigned char _binary_out_objs_shaders_default_vert_spv_start[];
 extern const unsigned int _binary_out_objs_shaders_default_vert_spv_size;
 extern const unsigned char _binary_out_objs_shaders_default_vert_spv_end[];
 
 // Macros for convenience
-// From test/shaders/default.frag.o
-#define MY_SHADER_size _binary_out_objs_shaders_default_frag_spv_size
-#define MY_SHADER_end _binary_out_objs_shaders_default_frag_spv_end
-#define MY_SHADER_start _binary_out_objs_shaders_default_frag_spv_start
+// From .\test\shaders\default.frag.o
+#define DEFAULT_FRAG_SIZE _binary_out_objs_shaders_default_frag_spv_size
+#define DEFAULT_FRAG_END _binary_out_objs_shaders_default_frag_spv_end
+#define DEFAULT_FRAG_START _binary_out_objs_shaders_default_frag_spv_start
+// From .\test\shaders\default.vert.o
+#define DEFAULT_VERT_START _binary_out_objs_shaders_default_vert_spv_start
+#define DEFAULT_VERT_SIZE _binary_out_objs_shaders_default_vert_spv_size
+#define DEFAULT_VERT_END _binary_out_objs_shaders_default_vert_spv_end
 
-#endif // shader_symbols_SYMBOLS_H
+#endif // _INCLUDE_SHADER_SYMBOL_TEST_H_
+
 ~~~
 
 ## 在 Makefile 中使用

@@ -1,1 +1,2 @@
 .\SymbolGenerator.exe -d .\test\ -n shader_symbol_test .\test\shaders\default.frag.o DEFAULT_FRAG .\test\shaders\default.vert.o DEFAULT_VERT
+.\SymbolGenerator.exe -d .\test\ .\test\shaders\default.frag.o DEFAULT_FRAG .\test\shaders\default.vert.o DEFAULT_VERT
