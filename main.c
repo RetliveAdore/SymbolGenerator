@@ -555,7 +555,7 @@ static int parse_coff(const char *filename, Symbol **outSymbols, int *outCount)
     return 1;
 }
 
-// 规范化路径：确保不以路径分隔符结尾
+// 规范化路径：确保不以路径分隔符结尾，统一使用正斜杠
 static void normalize_path(char *out, size_t outSize, const char *path)
 {
     size_t len = strlen(path);
@@ -565,15 +565,19 @@ static void normalize_path(char *out, size_t outSize, const char *path)
         return;
     }
     
-#ifdef _WIN32
-    char sep = '\\';
-#else
+    // 统一使用正斜杠作为分隔符
     char sep = '/';
-#endif
     
-    // 复制路径
+    // 复制路径并转换反斜杠为正斜杠
     strncpy(out, path, outSize - 1);
     out[outSize - 1] = '\0';
+    
+    // 将反斜杠转换为正斜杠
+    for (char *p = out; *p; p++)
+    {
+        if (*p == '\\')
+            *p = '/';
+    }
     
     // 移除尾随分隔符
     size_t outLen = strlen(out);
@@ -601,11 +605,8 @@ static void generate_header(const char *outDir, const char *baseName, const char
     // 规范化输出目录
     normalize_path(normalizedDir, sizeof(normalizedDir), outDir);
     
-#ifdef _WIN32
-    snprintf(headerPath, sizeof(headerPath), "%s\\%s.h", normalizedDir, baseName);
-#else
+    // 统一使用正斜杠拼接路径
     snprintf(headerPath, sizeof(headerPath), "%s/%s.h", normalizedDir, baseName);
-#endif
 
     FILE *h = fopen(headerPath, "w");
     if (!h)
@@ -686,16 +687,7 @@ static void generate_combined_header(const char *outDir, const char *headerName,
     size_t nameLen = strlen(headerName);
     int hasExtension = (nameLen >= 2 && strcmp(headerName + nameLen - 2, ".h") == 0);
     
-#ifdef _WIN32
-    if (hasExtension)
-    {
-        snprintf(headerPath, sizeof(headerPath), "%s\\%s", normalizedDir, headerName);
-    }
-    else
-    {
-        snprintf(headerPath, sizeof(headerPath), "%s\\%s.h", normalizedDir, headerName);
-    }
-#else
+    // 统一使用正斜杠拼接路径
     if (hasExtension)
     {
         snprintf(headerPath, sizeof(headerPath), "%s/%s", normalizedDir, headerName);
@@ -704,7 +696,6 @@ static void generate_combined_header(const char *outDir, const char *headerName,
     {
         snprintf(headerPath, sizeof(headerPath), "%s/%s.h", normalizedDir, headerName);
     }
-#endif
 
     FILE *h = fopen(headerPath, "w");
     if (!h)
@@ -742,7 +733,10 @@ static void generate_combined_header(const char *outDir, const char *headerName,
     {
         if (files[f].symbolCount > 0)
         {
-            fprintf(h, "// From %s\n", files[f].filepath);
+            // 规范化文件路径用于输出
+            char normalizedFilePath[1024];
+            normalize_path(normalizedFilePath, sizeof(normalizedFilePath), files[f].filepath);
+            fprintf(h, "// From %s\n", normalizedFilePath);
             for (int i = 0; i < files[f].symbolCount; i++)
             {
                 const char *name = files[f].symbols[i].name;
@@ -780,7 +774,10 @@ static void generate_combined_header(const char *outDir, const char *headerName,
         {
             if (files[f].macro && files[f].macro[0] && files[f].symbolCount > 0)
             {
-                fprintf(h, "// From %s\n", files[f].filepath);
+                // 规范化文件路径用于输出
+                char normalizedFilePath[1024];
+                normalize_path(normalizedFilePath, sizeof(normalizedFilePath), files[f].filepath);
+                fprintf(h, "// From %s\n", normalizedFilePath);
                 for (int i = 0; i < files[f].symbolCount; i++)
                 {
                     const char *name = files[f].symbols[i].name;
